@@ -220,3 +220,73 @@ CREATE POLICY "Admin has full access to steps"
 CREATE POLICY "Admin can read and insert audit events"
     ON public.audit_events FOR ALL
     USING (public.is_admin());
+
+-- 12. AUTOMATIC PROFILE & ADMIN ROLE ASSIGNMENT TRIGGER
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  assigned_role user_role := 'viewer';
+  user_full_name TEXT;
+  user_avatar TEXT;
+BEGIN
+  -- Otomatis jadikan admin jika email sama dengan owner
+  IF LOWER(NEW.email) = 'edgarchuang343@gmail.com' THEN
+    assigned_role := 'admin';
+  ELSE
+    assigned_role := 'viewer';
+  END IF;
+
+  user_full_name := COALESCE(
+    NEW.raw_user_meta_data->>'full_name',
+    NEW.raw_user_meta_data->>'display_name',
+    NEW.raw_user_meta_data->>'name',
+    split_part(NEW.email, '@', 1),
+    'Pengguna'
+  );
+
+  user_avatar := COALESCE(
+    NEW.raw_user_meta_data->>'avatar_url',
+    NEW.raw_user_meta_data->>'picture',
+    'https://api.dicebear.com/7.x/adventurer/svg?seed=' || NEW.email
+  );
+
+  INSERT INTO public.profiles (
+    id,
+    email,
+    display_name,
+    avatar_url,
+    role,
+    status,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    NEW.id,
+    NEW.email,
+    user_full_name,
+    user_avatar,
+    assigned_role,
+    'active',
+    timezone('utc'::text, now()),
+    timezone('utc'::text, now())
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET
+    email = EXCLUDED.email,
+    display_name = COALESCE(EXCLUDED.display_name, public.profiles.display_name),
+    avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
+    role = CASE 
+      WHEN LOWER(EXCLUDED.email) = 'edgarchuang343@gmail.com' THEN 'admin'
+      ELSE public.profiles.role 
+    END,
+    updated_at = timezone('utc'::text, now());
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT OR UPDATE ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+

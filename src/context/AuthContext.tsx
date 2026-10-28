@@ -27,6 +27,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_STORAGE_KEY = "resepify_active_user_v1";
 
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "edgarchuang343@gmail.com")
+  .toLowerCase()
+  .split(",")
+  .map((e) => e.trim());
+
+export function isUserAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase().trim());
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,22 +57,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .eq("id", session.user.id)
               .single();
 
+            const userEmail = session.user.email || "";
             const activeUser: UserProfile = {
               id: session.user.id,
-              email: session.user.email || "",
+              email: userEmail,
               display_name:
                 profile?.display_name ||
                 session.user.user_metadata?.display_name ||
                 session.user.user_metadata?.full_name ||
-                session.user.email?.split("@")[0] ||
+                userEmail.split("@")[0] ||
                 "Pengguna",
               avatar_url:
                 profile?.avatar_url ||
                 session.user.user_metadata?.avatar_url ||
                 `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(
-                  session.user.email || "user"
+                  userEmail || "user"
                 )}`,
-              role: profile?.role || "viewer",
+              role: isUserAdminEmail(userEmail) ? "admin" : (profile?.role || "viewer"),
               status: "active",
               created_at: session.user.created_at || new Date().toISOString(),
             };
@@ -103,22 +114,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq("id", session.user.id)
             .single();
 
+          const userEmail = session.user.email || "";
           const activeUser: UserProfile = {
             id: session.user.id,
-            email: session.user.email || "",
+            email: userEmail,
             display_name:
               profile?.display_name ||
               session.user.user_metadata?.display_name ||
               session.user.user_metadata?.full_name ||
-              session.user.email?.split("@")[0] ||
+              userEmail.split("@")[0] ||
               "Pengguna",
             avatar_url:
               profile?.avatar_url ||
               session.user.user_metadata?.avatar_url ||
               `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(
-                session.user.email || "user"
+                userEmail || "user"
               )}`,
-            role: profile?.role || "viewer",
+            role: isUserAdminEmail(userEmail) ? "admin" : (profile?.role || "viewer"),
             status: "active",
             created_at: session.user.created_at || new Date().toISOString(),
           };
@@ -175,17 +187,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq("id", data.user.id)
             .single();
 
+          const userEmail = data.user.email || email.trim();
           const activeUser: UserProfile = {
             id: data.user.id,
-            email: data.user.email || email.trim(),
+            email: userEmail,
             display_name:
               profile?.display_name ||
               data.user.user_metadata?.display_name ||
-              email.split("@")[0],
+              userEmail.split("@")[0],
             avatar_url:
               profile?.avatar_url ||
-              `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(email)}`,
-            role: profile?.role || (email.toLowerCase().includes("admin") ? "admin" : "viewer"),
+              `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(userEmail)}`,
+            role: isUserAdminEmail(userEmail) ? "admin" : (profile?.role || "viewer"),
             status: "active",
             created_at: data.user.created_at || new Date().toISOString(),
           };
@@ -201,8 +214,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Local fallback simulation
     await new Promise((r) => setTimeout(r, 400));
-    if (email.toLowerCase().includes("admin")) {
-      saveUserSession(defaultUsers[0]);
+    const normalizedEmail = email.trim().toLowerCase();
+    if (isUserAdminEmail(normalizedEmail)) {
+      saveUserSession({
+        ...defaultUsers[0],
+        email: normalizedEmail,
+      });
     } else {
       const viewerUser: UserProfile = {
         id: "usr-" + Date.now().toString(36),
@@ -253,12 +270,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // If session exists immediately (e.g. email confirmations disabled in Supabase)
         if (data.session && data.user) {
+          const userEmail = email.trim();
           const newUser: UserProfile = {
             id: data.user.id,
-            email: email.trim(),
+            email: userEmail,
             display_name: displayName.trim(),
-            avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(email)}`,
-            role: "viewer",
+            avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(userEmail)}`,
+            role: isUserAdminEmail(userEmail) ? "admin" : "viewer",
             status: "active",
             created_at: new Date().toISOString(),
           };
@@ -309,16 +327,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Local fallback
     await new Promise((r) => setTimeout(r, 600));
-    const isOwner = email.toLowerCase().includes("admin");
-    const targetUser = isOwner ? defaultUsers[0] : {
-      id: "usr-" + Date.now().toString(36),
-      email: email.trim(),
-      display_name: email.split("@")[0].replace(/[._-]/g, " "),
-      avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(email)}`,
-      role: "viewer" as UserRole,
-      status: "active" as const,
-      created_at: new Date().toISOString(),
-    };
+    const userEmail = email.trim();
+    const isOwner = isUserAdminEmail(userEmail);
+    const targetUser = isOwner
+      ? { ...defaultUsers[0], email: userEmail }
+      : {
+          id: "usr-" + Date.now().toString(36),
+          email: userEmail,
+          display_name: userEmail.split("@")[0].replace(/[._-]/g, " "),
+          avatar_url: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(userEmail)}`,
+          role: "viewer" as UserRole,
+          status: "active" as const,
+          created_at: new Date().toISOString(),
+        };
 
     saveUserSession(targetUser);
     setIsLoading(false);
