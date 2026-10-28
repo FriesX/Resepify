@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #FFFBEB;
+    --foreground: #0F172A;
+    
+    --color-primary: #9A3412;
+    --color-primary-hover: #7C2D12;
+    --color-primary-light: #FFEDD5;
+    
+    --color-secondary: #C2410C;
+    --color-secondary-hover: #9A3412;
+    
+    --color-accent: #059669;
+    --color-accent-hover: #047857;
+    --color-accent-light: #DCFCE7;
+    
+    --color-card: #FFFFFF;
+    --color-card-foreground: #0F172A;
+    
+    --color-muted: #F8F2F0;
+    --color-muted-foreground: #475569;
+    
+    --color-border: #F2E6E2;
+    --color-destructive: #DC2626;
+    --color-ring: #9A3412;
+  }
+
+  .dark {
+    --background: #12100E;
+    --foreground: #F8FAFC;
+    
+    --color-primary: #EA580C;
+    --color-primary-hover: #F97316;
+    --color-primary-light: #431407;
+    
+    --color-secondary: #F97316;
+    --color-secondary-hover: #FB923C;
+    
+    --color-accent: #10B981;
+    --color-accent-hover: #34D399;
+    --color-accent-light: #064E3B;
+    
+    --color-card: #1C1917;
+    --color-card-foreground: #F8FAFC;
+    
+    --color-muted: #292524;
+    --color-muted-foreground: #A8A29E;
+    
+    --color-border: #44403C;
+    --color-destructive: #EF4444;
+    --color-ring: #EA580C;
+  }
+
+  body {
+    color: var(--foreground);
+    background-color: var(--background);
+    min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FFFBEB;
+}
+::-webkit-scrollbar-thumb {
+  background: #FED7AA;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #F97316;
+}

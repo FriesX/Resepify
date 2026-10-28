@@ -1,0 +1,60 @@
+import { Category } from "@/types/category";
+
+export const initialCategories: Category[] = [
+  {
+    id: "cat-utama",
+    name: "Makanan Utama",
+    slug: "makanan-utama",
+    description: "Hidangan utama berat berprotein dan kaya rempah untuk santap siang maupun malam",
+    icon: "Utensils",
+    is_active: true,
+  },
+  {
+    id: "cat-nusantara",
+    name: "Masakan Nusantara",
+    slug: "masakan-nusantara",
+    description: "Kuliner otentik warisan berbagai daerah dari Sabang sampai Merauke",
+    icon: "Flame",
+    is_active: true,
+  },
+  {
+    id: "cat-sarapan",
+    name: "Sarapan Praktis",
+    slug: "sarapan-praktis",
+    description: "Menu lezat, cepat disiapkan, dan berenergi untuk memulai pagi",
+    icon: "Sunrise",
+    is_active: true,
+  },
+  {
+    id: "cat-camilan",
+    name: "Camilan & Kudapan",
+    slug: "camilan-kudapan",
+    description: "Kudapan gurih, renyah, dan manis untuk menemani waktu santai",
+    icon: "Cookie",
+    is_active: true,
+  },
+  {
+    id: "cat-dessert",
+    name: "Pencuci Mulut & Kue",
+    slug: "pencuci-mulut",
+    description: "Hidangan penutup manis, puding lembut, dan aneka cake modern",
+    icon: "Cake",
+    is_active: true,
+  },
+  {
+    id: "cat-minuman",
+    name: "Minuman Segar",
+    slug: "minuman-segar",
+    description: "Minuman tradisional segar, es buah, dan racikan pelepas dahaga",
+    icon: "Coffee",
+    is_active: true,
+  },
+  {
+    id: "cat-sehat",
+    name: "Menu Sehat & Sayur",
+    slug: "menu-sehat",
+    description: "Olahan sayuran segar, salad tropis, dan menu rendah minyak",
+    icon: "Salad",
+    is_active: true,
+  },
+];
