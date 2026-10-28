@@ -7,27 +7,55 @@ import {
   UtensilsCrossed,
   Lock,
   Mail,
+  User,
   ArrowRight,
   ShieldCheck,
   UserCheck,
-  Sparkles,
   AlertCircle,
   CheckCircle,
+  MailCheck,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Navbar } from "@/components/common/Navbar";
 import { Footer } from "@/components/common/Footer";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, isAuthenticated, loginWithEmail, loginWithMagicLink, loginWithGoogle, quickLoginAs, logout } =
-    useAuth();
+  const {
+    user,
+    isAuthenticated,
+    loginWithEmail,
+    signUpWithEmail,
+    loginWithMagicLink,
+    loginWithGoogle,
+    quickLoginAs,
+    logout,
+  } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<"password" | "magic_link">("password");
+  // Mode: "signin" | "signup"
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+
+  // Signin sub-tab: "password" | "magic_link"
+  const [activeSignInTab, setActiveSignInTab] = useState<"password" | "magic_link">("password");
+
+  // Form Fields
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Email verification required screen state
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+
+  // Discreet test switcher toggle
+  const [showDemoBox, setShowDemoBox] = useState(false);
 
   // If already authenticated
   if (isAuthenticated && user) {
@@ -71,6 +99,46 @@ export default function LoginPage() {
     );
   }
 
+  // Verification Screen
+  if (verificationPending) {
+    return (
+      <div className="min-h-screen flex flex-col bg-cream-50">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-white rounded-clay p-8 sm:p-10 max-w-md w-full shadow-clay border border-terracotta-100 text-center animate-fadeIn">
+            <div className="w-16 h-16 rounded-full bg-amber-100 text-terracotta-800 flex items-center justify-center mx-auto mb-4">
+              <MailCheck className="w-8 h-8" aria-hidden="true" />
+            </div>
+            <h2 className="font-serif text-2xl font-bold text-slate-900 mb-2">
+              Verifikasi Email Anda
+            </h2>
+            <p className="text-slate-600 text-sm leading-relaxed mb-4">
+              Tautan konfirmasi pendaftaran telah kami kirimkan ke:
+            </p>
+            <div className="p-3 bg-cream-100 rounded-xl font-mono text-xs text-terracotta-900 font-bold mb-6">
+              {pendingEmail}
+            </div>
+            <p className="text-xs text-slate-500 mb-6">
+              Silakan periksa kotak masuk (inbox) atau folder spam email Anda, lalu klik tautan verifikasi untuk mengaktifkan akun Resepify Anda.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setVerificationPending(false);
+                setAuthMode("signin");
+              }}
+              className="w-full py-3 px-4 bg-terracotta-800 hover:bg-terracotta-900 text-white font-semibold text-xs rounded-xl transition-all shadow-clay-button cursor-pointer"
+            >
+              Kembali ke Halaman Masuk
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Handle Sign In (Password)
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -78,8 +146,8 @@ export default function LoginPage() {
       setError("Masukkan alamat email yang valid.");
       return;
     }
-    if (!password || password.length < 4) {
-      setError("Kata sandi minimal 4 karakter.");
+    if (!password) {
+      setError("Masukkan kata sandi Anda.");
       return;
     }
 
@@ -94,6 +162,45 @@ export default function LoginPage() {
     }
   };
 
+  // Handle Sign Up (Create Account)
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!displayName || displayName.trim().length < 2) {
+      setError("Nama lengkap minimal 2 karakter.");
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      setError("Masukkan alamat email yang valid.");
+      return;
+    }
+    if (!password || password.length < 6) {
+      setError("Kata sandi minimal 6 karakter.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Konfirmasi kata sandi tidak cocok.");
+      return;
+    }
+
+    setLoading(true);
+    const res = await signUpWithEmail(email, password, displayName);
+    setLoading(false);
+
+    if (res.success) {
+      if (res.needsVerification) {
+        setPendingEmail(email);
+        setVerificationPending(true);
+      } else {
+        router.push("/recipes");
+      }
+    } else {
+      setError(res.error || "Gagal membuat akun.");
+    }
+  };
+
+  // Handle Magic Link
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -107,21 +214,20 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res.success) {
-      setSuccessMessage("Tautan masuk berhasil dikirim & sesi Anda telah aktif!");
-      setTimeout(() => {
-        router.push(email.toLowerCase().includes("admin") ? "/admin" : "/recipes");
-      }, 1000);
+      setSuccessMessage("Tautan masuk berhasil dikirim ke email Anda!");
     } else {
       setError(res.error || "Gagal mengirimkan tautan masuk.");
     }
   };
 
+  // Handle Google OAuth
   const handleGoogleLogin = async () => {
+    setError(null);
     setLoading(true);
     const res = await loginWithGoogle();
     setLoading(false);
-    if (res.success) {
-      router.push("/recipes");
+    if (!res.success && res.error) {
+      setError(res.error);
     }
   };
 
@@ -137,44 +243,45 @@ export default function LoginPage() {
               <UtensilsCrossed className="w-6 h-6" aria-hidden="true" />
             </div>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
-              Masuk ke Resepify
+              {authMode === "signin" ? "Masuk ke Resepify" : "Buat Akun Baru"}
             </h1>
             <p className="text-slate-500 text-xs sm:text-sm mt-1">
-              Akses khusus anggota untuk membuka seluruh katalog resep
+              {authMode === "signin"
+                ? "Buka akses penuh ke katalog resep dan instruksi memasak"
+                : "Daftar gratis untuk menikmati seluruh resep terkurasi"}
             </p>
           </div>
 
-          {/* Quick 1-Click Demo Testing Buttons (PRD Evaluation Ease) */}
-          <div className="mb-6 p-4 rounded-xl bg-cream-100/80 border border-terracotta-200/80">
-            <span className="text-[11px] font-bold text-terracotta-900 uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
-              Akses Uji Coba Cepat (1-Klik):
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  quickLoginAs("admin");
-                  router.push("/admin");
-                }}
-                className="p-2.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-950 font-bold text-xs flex flex-col items-center gap-1 transition-all cursor-pointer text-center"
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-700" />
-                <span>Masuk Admin</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  quickLoginAs("viewer");
-                  router.push("/recipes");
-                }}
-                className="p-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-950 font-bold text-xs flex flex-col items-center gap-1 transition-all cursor-pointer text-center"
-              >
-                <UserCheck className="w-4 h-4 text-emerald-700" />
-                <span>Masuk Viewer</span>
-              </button>
-            </div>
+          {/* Primary Mode Toggle: Masuk vs Daftar Akun */}
+          <div className="grid grid-cols-2 p-1 bg-cream-100 rounded-xl mb-6 border border-terracotta-100">
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode("signin");
+                setError(null);
+              }}
+              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                authMode === "signin"
+                  ? "bg-terracotta-800 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Masuk (Sign In)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode("signup");
+                setError(null);
+              }}
+              className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                authMode === "signup"
+                  ? "bg-terracotta-800 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Daftar Akun Baru (Sign Up)
+            </button>
           </div>
 
           {/* Error & Success Alerts */}
@@ -192,7 +299,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Google OAuth Button */}
+          {/* Google OAuth Button (Integrated with Supabase) */}
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -217,7 +324,11 @@ export default function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            <span>Lanjutkan dengan Google</span>
+            <span>
+              {authMode === "signin"
+                ? "Lanjutkan dengan Google"
+                : "Daftar dengan Google"}
+            </span>
           </button>
 
           <div className="relative flex items-center justify-center mb-5">
@@ -227,43 +338,147 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Auth Tab: Password vs Magic Link */}
-          <div className="grid grid-cols-2 p-1 bg-cream-100 rounded-xl mb-4 border border-terracotta-100">
-            <button
-              type="button"
-              onClick={() => setActiveTab("password")}
-              className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "password"
-                  ? "bg-white text-terracotta-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Kata Sandi
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("magic_link")}
-              className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                activeTab === "magic_link"
-                  ? "bg-white text-terracotta-900 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Tautan Ajaib (Magic Link)
-            </button>
-          </div>
+          {/* SIGN IN FORM */}
+          {authMode === "signin" && (
+            <>
+              {/* Sub-tab: Password vs Magic Link */}
+              <div className="grid grid-cols-2 p-1 bg-cream-50 rounded-xl mb-4 border border-terracotta-100">
+                <button
+                  type="button"
+                  onClick={() => setActiveSignInTab("password")}
+                  className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    activeSignInTab === "password"
+                      ? "bg-white text-terracotta-900 shadow-xs border border-terracotta-200"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Kata Sandi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveSignInTab("magic_link")}
+                  className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    activeSignInTab === "magic_link"
+                      ? "bg-white text-terracotta-900 shadow-xs border border-terracotta-200"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Tautan Ajaib
+                </button>
+              </div>
 
-          {/* Form */}
-          {activeTab === "password" ? (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
+              {activeSignInTab === "password" ? (
+                <form onSubmit={handlePasswordLogin} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="email-signin">
+                      Alamat Email
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="email-signin"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="nama@email.com"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 text-sm bg-cream-50 border border-terracotta-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-700 text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="pass-signin">
+                      Kata Sandi
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="pass-signin"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 text-sm bg-cream-50 border border-terracotta-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-700 text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 px-4 bg-terracotta-800 hover:bg-terracotta-900 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all shadow-clay-button cursor-pointer flex items-center justify-center gap-2 mt-2"
+                  >
+                    <span>{loading ? "Memverifikasi..." : "Masuk ke Akun"}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleMagicLink} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="magic-email">
+                      Alamat Email Anda
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        id="magic-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="nama@email.com"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 text-sm bg-cream-50 border border-terracotta-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-700 text-slate-900"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Tautan login aman akan dikirimkan langsung ke email Anda.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 px-4 bg-terracotta-800 hover:bg-terracotta-900 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all shadow-clay-button cursor-pointer flex items-center justify-center gap-2 mt-2"
+                  >
+                    <span>{loading ? "Mengirimkan Tautan..." : "Kirim Tautan Masuk"}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+
+          {/* SIGN UP FORM (CREATE ACCOUNT) */}
+          {authMode === "signup" && (
+            <form onSubmit={handleSignUp} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="email-input">
+                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="name-signup">
+                  Nama Lengkap
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    id="name-signup"
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Contoh: Rina Kusuma"
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-cream-50 border border-terracotta-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-700 text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="email-signup">
                   Alamat Email
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    id="email-input"
+                    id="email-signup"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -275,70 +490,99 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="pass-input">
-                  Kata Sandi
+                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="pass-signup">
+                  Kata Sandi (Minimal 6 Karakter)
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    id="pass-input"
+                    id="pass-signup"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
+                    minLength={6}
                     className="w-full pl-10 pr-4 py-2.5 text-sm bg-cream-50 border border-terracotta-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-700 text-slate-900"
                   />
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-4 bg-terracotta-800 hover:bg-terracotta-900 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all shadow-clay-button cursor-pointer flex items-center justify-center gap-2 mt-2"
-              >
-                <span>{loading ? "Memverifikasi..." : "Masuk ke Akun"}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleMagicLink} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="magic-email">
-                  Alamat Email Anda
+                <label className="block text-xs font-bold text-slate-700 mb-1" htmlFor="confirm-pass-signup">
+                  Konfirmasi Kata Sandi
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    id="magic-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="nama@email.com"
+                    id="confirm-pass-signup"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
                     required
+                    minLength={6}
                     className="w-full pl-10 pr-4 py-2.5 text-sm bg-cream-50 border border-terracotta-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-700 text-slate-900"
                   />
                 </div>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Kami akan mengirimkan tautan login aman tanpa perlu mengingat kata sandi.
-                </p>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 bg-terracotta-800 hover:bg-terracotta-900 disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all shadow-clay-button cursor-pointer flex items-center justify-center gap-2 mt-2"
+                className="w-full py-3 px-4 bg-accent hover:bg-accent-hover disabled:opacity-60 text-white font-semibold text-sm rounded-xl transition-all shadow-clay-accent cursor-pointer flex items-center justify-center gap-2 mt-2"
               >
-                <span>{loading ? "Mengirimkan Tautan..." : "Kirim Tautan Masuk"}</span>
+                <span>{loading ? "Membuat Akun..." : "Daftar Akun Sekarang"}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
           )}
 
-          {/* Privacy Note */}
-          <p className="text-[11px] text-slate-400 text-center mt-6">
-            Dengan masuk, Anda menyetujui Ketentuan Layanan dan Kebijakan Privasi Resepify.
-          </p>
+          {/* Discreet Developer / Testing Switcher Toggle */}
+          <div className="mt-8 pt-4 border-t border-slate-200 text-center">
+            <button
+              type="button"
+              onClick={() => setShowDemoBox(!showDemoBox)}
+              className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 inline-flex items-center gap-1 cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>Akses Uji Coba Cepat (Evaluasi Tanpa Email)</span>
+              {showDemoBox ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+
+            {showDemoBox && (
+              <div className="mt-3 p-3 rounded-xl bg-cream-100/70 border border-terracotta-100 text-left animate-fadeIn">
+                <span className="text-[10px] font-bold text-terracotta-900 uppercase tracking-wider block mb-2">
+                  Pilih Akun Demo Cepat:
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      quickLoginAs("admin");
+                      router.push("/admin");
+                    }}
+                    className="p-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-950 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Admin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      quickLoginAs("viewer");
+                      router.push("/recipes");
+                    }}
+                    className="p-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-950 font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Viewer</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
