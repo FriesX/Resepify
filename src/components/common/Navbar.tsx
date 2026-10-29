@@ -26,7 +26,7 @@ export function Navbar() {
 
   return (
     <>
-      <header className="bg-cream-100/90 backdrop-blur-md sticky top-[37px] z-40 border-b border-terracotta-100 transition-all no-print">
+      <header className="bg-cream-100/90 backdrop-blur-md sticky top-0 z-40 border-b border-terracotta-100 shadow-sm transition-all no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-18">
             {/* Logo */}

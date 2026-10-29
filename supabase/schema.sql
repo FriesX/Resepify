@@ -225,7 +225,7 @@ CREATE POLICY "Admin can read and insert audit events"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  assigned_role user_role := 'viewer';
+  assigned_role public.user_role := 'viewer';
   user_full_name TEXT;
   user_avatar TEXT;
 BEGIN
@@ -276,17 +276,17 @@ BEGIN
     display_name = COALESCE(EXCLUDED.display_name, public.profiles.display_name),
     avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
     role = CASE 
-      WHEN LOWER(EXCLUDED.email) = 'edgarchuang343@gmail.com' THEN 'admin'
+      WHEN LOWER(EXCLUDED.email) = 'edgarchuang343@gmail.com' THEN 'admin'::public.user_role
       ELSE public.profiles.role 
     END,
     updated_at = timezone('utc'::text, now());
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
-  AFTER INSERT OR UPDATE ON auth.users
+  AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
