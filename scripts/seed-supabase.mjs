@@ -1,7 +1,17 @@
 import { createClient } from "@supabase/supabase-js";
+import fs from "node:fs";
 
-const supabaseUrl = "https://fiwadkveglsegphmizsx.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpd2Fka3ZlZ2xzZWdwaG1penN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxNzM0MzgsImV4cCI6MjEwODc0OTQzOH0.UqnFOHHcG7nz8iG-MIwQNuiSmv62Z36Wo-v8UFm3jYE";
+if (fs.existsSync(".env.local") && typeof process.loadEnvFile === "function") {
+  process.loadEnvFile(".env.local");
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("❌ Error: NEXT_PUBLIC_SUPABASE_URL atau NEXT_PUBLIC_SUPABASE_ANON_KEY belum dikonfigurasi di environment atau .env.local.");
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

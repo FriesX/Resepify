@@ -65,12 +65,12 @@ npm run build
 
 ---
 
-## 👥 Akun Uji Coba Cepat (Mode Demo)
+## 🔐 Autentikasi & Manajemen Peran (Supabase Auth)
 
-Bilah atas (*Demo Bar*) memudahkan pengujian seluruh peran pengguna tanpa perlu mendaftar ulang:
-1. **Tamu (Guest):** Menguji gerbang akses publik, halaman *landing*, dan penolakan akses privat.
-2. **Viewer (Sarah Penggemar Masak):** Menguji katalog, pencarian, checklist bahan, penyesuaian porsi, dan modal *Coming Soon*.
-3. **Admin (Chef Admin Resepify):** Membuka Dashboard Admin (`/admin`), mengedit draf, menerbitkan resep, mengelola kategori, meninjau log audit, dan ekspor JSON.
+Resepify menggunakan sistem autentikasi modern berbasis Supabase dengan kontrol akses berbasis peran (RBAC):
+1. **Google OAuth & Email/Password:** Pengguna dapat masuk menggunakan akun Google atau mendaftar menggunakan email dengan verifikasi.
+2. **Peran Viewer (Tamu Terdaftar):** Otomatis diberikan kepada seluruh pengguna yang mendaftar, memberikan akses penuh ke seluruh resep terbitan (*Published*).
+3. **Peran Admin (Pemilik Website):** Dikelola secara aman melalui trigger database PostgreSQL atau konfigurasi variabel `NEXT_PUBLIC_ADMIN_EMAILS`, memberikan akses eksklusif ke Dashboard Admin (`/admin`).
 
 ---
 
@@ -99,12 +99,14 @@ Recipes Stack/
 ├── .github/workflows/ci.yml       # Pipeline CI/CD GitHub Actions
 ├── design-system/resepify/        # Master token & aturan UI/UX Pro Max
 ├── scripts/
-│   └── test-recipe-logic.mjs      # Test suite verifikasi kriteria PRD
+│   ├── seed-supabase.mjs          # Script penanaman data awal ke Supabase
+│   ├── test-recipe-logic.mjs      # Test suite verifikasi kriteria PRD
+│   └── test-supabase-connection.mjs # Uji konektivitas database Supabase
 ├── src/
 │   ├── app/
 │   │   ├── admin/page.tsx         # Dashboard Admin & manajemen resep
 │   │   ├── api/                   # API routes (health, recipes, me)
-│   │   ├── login/page.tsx         # Autentikasi Google, Email & Magic Link
+│   │   ├── login/page.tsx         # Autentikasi Google & Email
 │   │   ├── recipes/
 │   │   │   ├── page.tsx           # Katalog resep terfilter
 │   │   │   └── [slug]/page.tsx    # Halaman detail & panduan memasak
@@ -113,7 +115,7 @@ Recipes Stack/
 │   │   └── page.tsx               # Gerbang beranda publik / pengalihan
 │   ├── components/
 │   │   ├── admin/                 # Modal CRUD, kategori, audit, backup
-│   │   ├── common/                # Navbar, Footer, DemoBar, ComingSoonModal
+│   │   ├── common/                # Navbar, Footer, ComingSoonModal
 │   │   ├── home/                  # GuestLanding (Hero-centric pattern)
 │   │   └── recipes/               # RecipeCard, RecipeFilters, DetailView
 │   ├── context/                   # AuthContext & state manajemen sesi
@@ -121,6 +123,8 @@ Recipes Stack/
 │   ├── lib/                       # Storage service, slug generator, Supabase client
 │   └── types/                     # Antarmuka TypeScript (Recipe, Category, Auth, Audit)
 ├── supabase/
-│   └── schema.sql                 # DDL PostgreSQL, RLS policies, indexes
+│   ├── admin_trigger.sql          # Trigger otomatisasi role admin
+│   ├── schema.sql                 # DDL PostgreSQL, RLS policies, indexes
+│   └── seed.sql                   # SQL seed resep & kategori nusantara
 └── package.json
 ```
