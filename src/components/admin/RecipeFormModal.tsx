@@ -22,7 +22,11 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Sparkles,
+  UploadCloud,
+  Loader2,
+  Camera,
 } from "lucide-react";
+import { uploadImage } from "@/lib/upload";
 import { RecipeDetailView } from "@/components/recipes/RecipeDetailView";
 
 interface RecipeFormModalProps {
@@ -33,16 +37,6 @@ interface RecipeFormModalProps {
   actor: UserProfile;
   onSuccess: () => void;
 }
-
-const sampleImages = [
-  { label: "Rendang Sapi", url: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80" },
-  { label: "Ayam Bakar", url: "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=1200&q=80" },
-  { label: "Soto & Sup Gurih", url: "https://images.unsplash.com/photo-1572449043416-55f4685c9bb7?auto=format&fit=crop&w=1200&q=80" },
-  { label: "Nasi Goreng", url: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=1200&q=80" },
-  { label: "Dessert & Manisan", url: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=1200&q=80" },
-  { label: "Salad Segar", url: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80" },
-  { label: "Cake & Baking", url: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&w=1200&q=80" },
-];
 
 export function RecipeFormModal({
   isOpen,
@@ -74,6 +68,9 @@ export function RecipeFormModal({
 
   const [previewMode, setPreviewMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [uploadingStepId, setUploadingStepId] = useState<string | null>(null);
+  const [coverUploadSource, setCoverUploadSource] = useState<"supabase" | "local" | null>(null);
 
   // Populate state on open or change
   useEffect(() => {
@@ -83,6 +80,7 @@ export function RecipeFormModal({
       setSummary(recipe.summary || "");
       setDescription(recipe.description || "");
       setCoverImageUrl(recipe.cover_image_url || "");
+      setCoverUploadSource(null);
       setCategoryIds(recipe.category_ids || []);
       setCuisine(recipe.cuisine || "Indonesia");
       setMealType(recipe.meal_type || "makan_siang");
@@ -100,7 +98,8 @@ export function RecipeFormModal({
       setSlug("");
       setSummary("");
       setDescription("");
-      setCoverImageUrl(sampleImages[0].url);
+      setCoverImageUrl("");
+      setCoverUploadSource(null);
       setCategoryIds([categories[0]?.id || "cat-utama"]);
       setCuisine("Indonesia");
       setMealType("makan_siang");
@@ -171,6 +170,44 @@ export function RecipeFormModal({
     );
   };
 
+  // Upload handlers
+  const handleCoverFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingCover(true);
+      setError(null);
+      const res = await uploadImage(file, "covers");
+      setCoverImageUrl(res.url);
+      setCoverUploadSource(res.source);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal mengunggah foto cover.";
+      setError(msg);
+    } finally {
+      setIsUploadingCover(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleStepFileUpload = async (stepId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingStepId(stepId);
+      setError(null);
+      const res = await uploadImage(file, "steps");
+      updateStep(stepId, "image_url", res.url);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal mengunggah foto langkah.";
+      setError(msg);
+    } finally {
+      setUploadingStepId(null);
+      e.target.value = "";
+    }
+  };
+
   // Save as Draft or Publish
   const handleSave = (publishState: "draft" | "published") => {
     setError(null);
@@ -229,7 +266,9 @@ export function RecipeFormModal({
     slug: slug || "preview-slug",
     summary: summary || "Ringkasan resep akan tampil di sini...",
     description: description || "",
-    cover_image_url: coverImageUrl || sampleImages[0].url,
+    cover_image_url:
+      coverImageUrl ||
+      "https://images.unsplash.com/photo-1495521821757-a1efb6729352?auto=format&fit=crop&w=1200&q=80",
     category_ids: categoryIds,
     cuisine,
     meal_type: mealType,
@@ -377,48 +416,103 @@ export function RecipeFormModal({
               </div>
             </div>
 
-            {/* Section 2: Cover Image & Presets */}
+            {/* Section 2: Upload Foto Cover Masakan dari Komputer */}
             <div className="bg-cream-50/70 p-5 rounded-2xl border border-terracotta-100 space-y-3">
-              <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-terracotta-700" />
-                <span>Foto Cover Masakan</span>
-              </h4>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  URL Gambar Utama <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="url"
-                  value={coverImageUrl}
-                  onChange={(e) => setCoverImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full p-2.5 bg-white border border-terracotta-200 rounded-lg text-xs font-mono text-slate-800 focus:outline-none focus:ring-1 focus:ring-terracotta-700 mb-2"
-                />
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-terracotta-700" />
+                  <span>Foto Cover Masakan</span>
+                  <span className="text-rose-500">*</span>
+                </h4>
+                {coverUploadSource === "supabase" && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    Tersimpan di Cloud Storage
+                  </span>
+                )}
+                {coverUploadSource === "local" && (
+                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                    Tersimpan Lokal
+                  </span>
+                )}
               </div>
 
-              {/* Sample Quick Selector */}
-              <div>
-                <span className="text-[11px] font-bold text-slate-600 block mb-1.5">
-                  Pilih Cepat dari Galeri Fotografi Kuliner Siap Pakai:
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {sampleImages.map((img, i) => (
+              {coverImageUrl ? (
+                <div className="relative rounded-xl overflow-hidden border-2 border-terracotta-200 bg-slate-900 aspect-[16/9] max-h-64 group shadow-sm">
+                  <img
+                    src={coverImageUrl}
+                    alt="Pratinjau Cover Resep"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <label className="px-3.5 py-2 bg-white text-slate-900 text-xs font-bold rounded-xl shadow-md cursor-pointer hover:bg-cream-100 transition-all flex items-center gap-1.5">
+                      <UploadCloud className="w-4 h-4 text-terracotta-700" />
+                      <span>Ganti Foto</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleCoverFileUpload}
+                        disabled={isUploadingCover}
+                      />
+                    </label>
                     <button
-                      key={i}
                       type="button"
-                      onClick={() => setCoverImageUrl(img.url)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
-                        coverImageUrl === img.url
-                          ? "bg-terracotta-800 text-white border-terracotta-800 shadow-xs"
-                          : "bg-white text-slate-700 border-terracotta-200 hover:bg-terracotta-50"
-                      }`}
+                      onClick={() => {
+                        setCoverImageUrl("");
+                        setCoverUploadSource(null);
+                      }}
+                      className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
                     >
-                      {img.label}
+                      <Trash2 className="w-4 h-4" />
+                      <span>Hapus Foto</span>
                     </button>
-                  ))}
+                  </div>
+                  {isUploadingCover && (
+                    <div className="absolute inset-0 bg-slate-900/80 flex flex-col items-center justify-center gap-2 text-white text-xs font-semibold">
+                      <Loader2 className="w-7 h-7 animate-spin text-terracotta-400" />
+                      <span>Mengunggah foto cover ke storage...</span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : (
+                <label
+                  className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+                    isUploadingCover
+                      ? "border-terracotta-400 bg-terracotta-50/50"
+                      : "border-terracotta-300 bg-white hover:bg-cream-50 hover:border-terracotta-500 shadow-xs"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverFileUpload}
+                    disabled={isUploadingCover}
+                  />
+                  {isUploadingCover ? (
+                    <div className="flex flex-col items-center gap-2 text-terracotta-900 py-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-terracotta-700" />
+                      <span className="text-xs font-bold">Sedang mengunggah foto ke penyimpanan aman...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-14 h-14 rounded-2xl bg-cream-100 text-terracotta-800 flex items-center justify-center mb-3 shadow-inner">
+                        <UploadCloud className="w-7 h-7" />
+                      </div>
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 mb-1">
+                        Pilih Foto Cover dari Komputer
+                      </span>
+                      <span className="text-[11px] text-slate-500 max-w-sm mb-3">
+                        Pilih file foto masakan langsung dari laptop Anda (JPG, PNG, WebP hingga 10 MB). Disimpan aman di cloud tanpa perlu menggunakan link luar.
+                      </span>
+                      <span className="px-3.5 py-1.5 rounded-lg bg-terracotta-800 text-white text-xs font-semibold shadow-xs hover:bg-terracotta-900 transition-colors">
+                        Pilih Berkas Gambar
+                      </span>
+                    </>
+                  )}
+                </label>
+              )}
             </div>
 
             {/* Section 3: Cooking Parameters */}
@@ -658,23 +752,69 @@ export function RecipeFormModal({
                       </button>
                     </div>
 
-                    <div className="pl-9 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                      <div>
-                        <input
-                          type="url"
-                          value={step.image_url || ""}
-                          onChange={(e) => updateStep(step.id, "image_url", e.target.value)}
-                          placeholder="URL Foto Langkah (opsional)"
-                          className="w-full p-1.5 bg-cream-50/40 border border-slate-200 rounded-md text-[11px] text-slate-700"
-                        />
-                      </div>
-                      <div>
+                    <div className="pl-9 flex flex-wrap items-center gap-3 text-[11px] pt-1">
+                      {/* Upload Foto Langkah dari Komputer */}
+                      {step.image_url ? (
+                        <div className="flex items-center gap-2 bg-cream-50 border border-terracotta-200 rounded-lg p-1.5 pr-2.5">
+                          <img
+                            src={step.image_url}
+                            alt={`Foto langkah ${idx + 1}`}
+                            className="w-10 h-10 object-cover rounded-md border border-terracotta-200"
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-700">Foto Langkah Terpasang</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <label className="text-terracotta-700 hover:text-terracotta-900 font-semibold cursor-pointer underline text-[10px]">
+                                Ganti
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={uploadingStepId === step.id}
+                                  onChange={(e) => handleStepFileUpload(step.id, e)}
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => updateStep(step.id, "image_url", "")}
+                                className="text-rose-600 hover:text-rose-800 font-semibold text-[10px] cursor-pointer"
+                              >
+                                Hapus
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-terracotta-200 rounded-lg text-terracotta-900 hover:bg-terracotta-50 text-[11px] font-semibold cursor-pointer transition-colors shadow-2xs">
+                          {uploadingStepId === step.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-terracotta-700" />
+                              <span>Mengunggah...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Camera className="w-3.5 h-3.5 text-terracotta-700" />
+                              <span>+ Upload Foto Langkah</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingStepId === step.id}
+                            onChange={(e) => handleStepFileUpload(step.id, e)}
+                          />
+                        </label>
+                      )}
+
+                      {/* Video URL opsional */}
+                      <div className="flex-1 min-w-[200px]">
                         <input
                           type="url"
                           value={step.video_url || ""}
                           onChange={(e) => updateStep(step.id, "video_url", e.target.value)}
                           placeholder="URL Video Pendek Langkah (opsional)"
-                          className="w-full p-1.5 bg-cream-50/40 border border-slate-200 rounded-md text-[11px] text-slate-700"
+                          className="w-full p-1.5 bg-cream-50/40 border border-slate-200 rounded-md text-[11px] text-slate-700 focus:outline-none focus:ring-1 focus:ring-terracotta-700"
                         />
                       </div>
                     </div>
