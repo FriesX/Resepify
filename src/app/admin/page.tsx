@@ -448,13 +448,17 @@ export default function AdminDashboardPage() {
         recipe={editingRecipe}
         categories={categories}
         actor={user}
-        onSuccess={() => {
+        onSuccess={(msg) => {
           showToast(
-            editingRecipe
-              ? "Perubahan resep berhasil disimpan."
-              : "Resep baru berhasil ditambahkan."
+            msg ||
+              (editingRecipe
+                ? "Perubahan resep berhasil disimpan."
+                : "Resep baru berhasil ditambahkan.")
           );
           loadData();
+          if (msg && msg.includes("Draf")) {
+            setStatusFilter("draft");
+          }
         }}
       />
 

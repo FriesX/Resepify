@@ -35,7 +35,7 @@ interface RecipeFormModalProps {
   recipe?: Recipe | null; // null if creating new
   categories: Category[];
   actor: UserProfile;
-  onSuccess: () => void;
+  onSuccess: (message?: string) => void;
 }
 
 export function RecipeFormModal({
@@ -243,7 +243,7 @@ export function RecipeFormModal({
     if (isEditing && recipe) {
       const res = RecipeService.update(recipe.id, payload, actor);
       if (res.success) {
-        onSuccess();
+        onSuccess("Perubahan resep berhasil disimpan.");
         onClose();
       } else {
         setError(res.error || "Gagal memperbarui resep.");
@@ -251,11 +251,88 @@ export function RecipeFormModal({
     } else {
       const res = RecipeService.create(payload, actor);
       if (res.success) {
-        onSuccess();
+        onSuccess(
+          publishState === "published"
+            ? "Resep baru berhasil diterbitkan."
+            : "Draf resep baru berhasil disimpan."
+        );
         onClose();
       } else {
         setError(res.error || "Gagal membuat resep.");
       }
+    }
+  };
+
+  // Deteksi apakah form memiliki perubahan data atau foto yang terunggah
+  const hasChanges = () => {
+    if (!recipe) {
+      if (coverImageUrl && coverImageUrl.trim().length > 0) return true;
+      if (title.trim().length > 0) return true;
+      if (summary.trim().length > 0 || description.trim().length > 0) return true;
+      if (tips.trim().length > 0 || (sourceAttribution && sourceAttribution !== "Kreasi Dapur Resepify")) return true;
+      if (steps.some((s) => (s.image_url && s.image_url.trim().length > 0) || (s.video_url && s.video_url.trim().length > 0))) return true;
+      if (ingredients.some((i) => i.name.trim().length > 0 && i.name !== "Bahan Utama" && i.name !== "Bawang Merah")) return true;
+      return false;
+    } else {
+      if (title !== recipe.title) return true;
+      if (coverImageUrl !== (recipe.cover_image_url || "")) return true;
+      if (summary !== (recipe.summary || "")) return true;
+      if (description !== (recipe.description || "")) return true;
+      if (cuisine !== recipe.cuisine) return true;
+      if (mealType !== recipe.meal_type) return true;
+      if (difficulty !== recipe.difficulty) return true;
+      if (prepTimeMinutes !== recipe.prep_time_minutes) return true;
+      if (cookTimeMinutes !== recipe.cook_time_minutes) return true;
+      if (servings !== recipe.servings) return true;
+      if (tips !== (recipe.tips || "")) return true;
+      if (sourceAttribution !== (recipe.source_attribution || "")) return true;
+      if (JSON.stringify(categoryIds) !== JSON.stringify(recipe.category_ids || [])) return true;
+      if (JSON.stringify(ingredients) !== JSON.stringify(recipe.ingredients || [])) return true;
+      if (JSON.stringify(steps) !== JSON.stringify(recipe.steps || [])) return true;
+      return false;
+    }
+  };
+
+  // Tutup modal dengan otomatis menyimpan sebagai draf jika ada foto atau perubahan
+  const handleCloseWithAutoDraft = () => {
+    if (!hasChanges()) {
+      onClose();
+      return;
+    }
+
+    const draftTitle = title.trim() || (recipe?.title || "Draf Resep Baru (Belum Berjudul)");
+    const payload: Partial<Recipe> = {
+      title: draftTitle,
+      slug: slug ? generateSlug(slug) : generateSlug(draftTitle),
+      summary,
+      description,
+      cover_image_url: coverImageUrl,
+      category_ids: categoryIds.length > 0 ? categoryIds : [categories[0]?.id || "cat-utama"],
+      cuisine,
+      meal_type: mealType,
+      prep_time_minutes: Number(prepTimeMinutes) || 15,
+      cook_time_minutes: Number(cookTimeMinutes) || 30,
+      servings: Number(servings) || 4,
+      difficulty,
+      ingredients: ingredients.filter((i) => i.name.trim().length > 0),
+      steps: steps.filter((s) => s.instruction.trim().length > 0),
+      tips,
+      source_attribution: sourceAttribution,
+      status: isEditing && recipe ? recipe.status : "draft",
+    };
+
+    if (isEditing && recipe) {
+      const res = RecipeService.update(recipe.id, payload, actor);
+      if (res.success) {
+        onSuccess("Perubahan resep dan foto berhasil disimpan otomatis.");
+      }
+      onClose();
+    } else {
+      const res = RecipeService.create(payload, actor);
+      if (res.success) {
+        onSuccess("Draf otomatis disimpan! Foto dan data Anda aman di tab Draf.");
+      }
+      onClose();
     }
   };
 
@@ -292,6 +369,11 @@ export function RecipeFormModal({
       aria-modal="true"
       aria-labelledby="recipe-form-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/70 backdrop-blur-sm animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleCloseWithAutoDraft();
+        }
+      }}
     >
       <div className="bg-white rounded-clay-lg max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-terracotta-100 max-h-[92vh] flex flex-col">
         {/* Modal Top Bar */}
@@ -326,7 +408,7 @@ export function RecipeFormModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCloseWithAutoDraft}
               aria-label="Tutup formulir"
               className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 cursor-pointer"
             >
@@ -860,10 +942,10 @@ export function RecipeFormModal({
         <div className="pt-4 border-t border-terracotta-100 flex flex-wrap items-center justify-between gap-3 mt-4">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseWithAutoDraft}
             className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
           >
-            Batal
+            {hasChanges() ? "Tutup (Simpan Draf)" : "Batal"}
           </button>
 
           <div className="flex items-center gap-2">
