@@ -19,13 +19,18 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- 2. Bersihkan policy lama agar tidak duplikat
 DROP POLICY IF EXISTS "Public can view recipe images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can select recipe images" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can upload recipe images" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can update recipe images" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can delete recipe images" ON storage.objects;
 
--- 3. Policy: Izinkan siapa saja (publik) membaca/melihat foto resep
-CREATE POLICY "Public can view recipe images"
+-- 3. Policy: Hanya izinkan pengguna terautentikasi (Admin) yang bisa query / listing daftar file
+-- Catatan: Pengunjung publik tetap bisa menampilkan seluruh foto di website melalui URL publik
+-- karena bucket ini berstatus 'public = true'. Menghapus policy SELECT publik mencegah orang luar
+-- mengintip seluruh daftar file di bucket (menghilangkan peringatan Supabase Security Advisor).
+CREATE POLICY "Authenticated users can select recipe images"
 ON storage.objects FOR SELECT
+TO authenticated
 USING (bucket_id = 'recipe-images');
 
 -- 4. Policy: Izinkan pengguna terautentikasi (Admin) mengunggah foto
