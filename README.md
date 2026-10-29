@@ -1,130 +1,127 @@
-# Resepify — Katalog Resep Masakan dengan Admin Tunggal & Akses Terautentikasi
+# Resepify 🍳✨
+### *Perpustakaan Resep Masakan Pilihan & Panduan Kuliner Interaktif*
 
-Aplikasi web katalog resep masakan modern, elegan, dan terstruktur yang dibangun berdasarkan **Product Requirements Document (PRD) v1.0** dengan panduan desain **UI/UX Pro Max Skill (Warm Culinary Editorial)**.
-
----
-
-## 🌟 Fitur Utama & Kesesuaian PRD
-
-### 1. Hak Akses & Matriks Otorisasi (PRD §4)
-- **Tamu (Guest Gate):** Pengunjung yang belum masuk hanya dapat melihat halaman landing publik dan ringkasan nilai produk. Akses katalog resep, detail bahan, langkah memasak, dan API resep dilindungi secara ketat.
-- **Pembaca (Viewer):** Pengguna terautentikasi memiliki akses baca (*view-only*) ke seluruh resep berstatus **Published**. Dilengkapi pencarian *full-text*, filter kategori, waktu, dan tingkat kesulitan.
-- **Admin Tunggal:** Pemilik website memiliki dashboard operasional penuh untuk membuat draf, mengedit, menerbitkan (*publish*), mengarsipkan (*soft delete*), memulihkan (*restore*), mengelola kategori, meninjau log audit, serta mencadangkan/memulihkan data JSON.
-- **Kontributor (Fase Lanjutan):** Tersedia kartu/modal resmi **Coming Soon** tanpa mengekspos endpoint *write* yang belum siap.
-
-### 2. Pengalaman Memasak Interaktif (PRD §6.4 & Preferensi Pengguna)
-- **Skala Porsi Dinamis (Servings Scaler):** Takaran seluruh bahan otomatis dihitung ulang secara proporsional sesuai jumlah porsi yang diinginkan.
-- **Checklist Bahan Masakan:** Pengguna dapat mencentang bahan belanjaan atau persiapan dapur yang sudah selesai.
-- **Panduan Memasak Bertahap:** Dilengkapi persentase progres memasak, checklist tahapan, serta dukungan media gambar dan cuplikan video pendek pada langkah memasak.
-- **Salin Bahan & Mode Cetak (Print-Friendly):** Salin daftar belanjaan ke *clipboard* hanya dengan 1 klik atau cetak lembar resep tanpa elemen navigasi.
-
-### 3. Keamanan & Kepatuhan Arsitektur (PRD §8, §9, §11)
-- **OWASP Top 10:2025 Compliant:** Otentikasi dan otorisasi diperiksa di sisi server; RLS (*Row Level Security*) diterapkan pada seluruh tabel database.
-- **Supabase Integration & Local Persistent Fallback:** Berjalan langsung tanpa konfigurasi eksternal berkat sistem penyimpanan lokal reaktif, sekaligus siap dihubungkan ke Supabase PostgreSQL & Auth kapan saja.
-- **Log Audit Operasional:** Merekam setiap aksi administratif tanpa menyimpan data sensitif, token, atau kata sandi.
-- **Pencadangan & Pemulihan (PRD §14):** Fitur ekspor dan impor berkas JSON untuk memastikan ketersediaan dan mitigasi kehilangan data.
+Resepify adalah aplikasi web katalog resep masakan modern yang dirancang untuk mempermudah siapa saja—mulai dari pemula di dapur hingga pecinta kuliner sejati—dalam menemukan, mempelajari, dan mempraktikkan resep hidangan lezat Nusantara dan kreasi kuliner pilihan dengan panduan memasak interaktif.
 
 ---
 
-## 🎨 Desain UI/UX (Warm Culinary Editorial)
+## 🌟 Fitur Unggulan
 
-Mengacu pada `ui-ux-pro-max-skill`:
-- **Warna Utama:** Terracotta hangat (`#9A3412`), Aksen Fresh Herb Green (`#059669`), dan Kanvas Cream lembut (`#FFFBEB`).
-- **Tipografi:** Kombinasi editorial *Playfair Display* (judul resep elegan) dan *Plus Jakarta Sans* (bacaan presisi dan nyaman).
-- **Claymorphic Cards:** Kartu masakan dengan bayangan lembut berdimensi, *hover lift* halus, serta rasio kontras warna tinggi (memenuhi standar WCAG 2.2 AA).
-- **Tanpa Emoji Struktural:** Seluruh ikon kontrol menggunakan vektor SVG standar (*Lucide Icons*).
+Resepify bukan sekadar buku resep digital biasa, melainkan asisten memasak pribadi di dapur Anda:
+
+* 📖 **Katalog Resep Terkurasi** — Jelajahi aneka menu mulai dari masakan utama, hidangan nusantara kaya rempah, sarapan praktis, camilan gurih, hingga hidangan penutup manis dengan pencarian cerdas dan filter multi-kategori (waktu, jenis sajian, tingkat kesulitan).
+* ⚖️ **Penyesuaian Porsi Otomatis (*Smart Servings Scaler*)** — Ingin memasak untuk 2 orang atau pesta 10 orang? Cukup ubah angka porsi, dan seluruh takaran bahan akan dihitung ulang secara otomatis dan proporsional.
+* ✅ **Checklist Bahan Interaktif** — Centang bahan-bahan belanjaan yang sudah disiapkan di meja dapur agar tidak ada bumbu rahasia yang terlewat.
+* 👩‍🍳 **Panduan Memasak Langkah Demi Langkah** — Ikuti instruksi memasak bertahap dengan pelacak progres (*progress bar*), checklist tahapan yang sudah selesai, serta panduan foto visual.
+* 📋 **Salin Bahan & Mode Cetak Dapur (*Print-Friendly*)** — Salin daftar belanja ke *clipboard* hanya dengan 1 klik untuk dikirim via chat, atau cetak lembar resep bersih tanpa gangguan tombol navigasi.
+* 🛡️ **Dashboard Pengelolaan Admin** — Manajemen resep lengkap bagi pemilik website untuk membuat draf menu baru, menerbitkan (*publish*), mengarsipkan, mengelola kategori, hingga mencadangkan (*backup*) data.
 
 ---
 
-## 🚀 Panduan Memulai Cepat
+## 🧭 Bagaimana Resepify Berjalan?
 
-### Prasyarat
-- Node.js versi 18 atau lebih baru.
-- npm.
+Aplikasi ini dirancang dengan alur pengalaman pengguna yang intuitif, aman, dan menyenangkan:
 
-### 1. Instalasi Dependensi
+```
+┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
+│ 1. Pengunjung Umum  │ ──> │  2. Akses Masuk     │ ──> │ 3. Memasak Interaktif│
+│    Jelajahi Landing │     │     Google / Email  │     │    Katalog & Resep  │
+└─────────────────────┘     └─────────────────────┘     └─────────────────────┘
+                                                                   │
+                                                                   ▼
+                                                        ┌─────────────────────┐
+                                                        │  4. Dashboard Admin │
+                                                        │     Kelola Menu     │
+                                                        └─────────────────────┘
+```
+
+1. **Jelajahi Halaman Utama (Pengunjung Umum)**  
+   Pengunjung yang baru pertama kali datang dapat melihat keunggulan Resepify, kategori menu populer, dan cuplikan kreasi masakan unggulan.
+2. **Masuk Akun Secara Mudah (Pengguna Terdaftar)**  
+   Cukup masuk menggunakan akun **Google** (*One-Tap / OAuth*) atau mendaftar dengan **Email** untuk membuka akses penuh ke seluruh perpustakaan resep terbitan.
+3. **Mulai Memasak dengan Panduan Interaktif**  
+   Pilih resep favorit, sesuaikan jumlah porsi, centang bahan yang tersedia, dan ikuti langkah memasak hingga hidangan siap disajikan.
+4. **Pengelolaan Menu Terpusat (Admin Utama)**  
+   Bagi pengelola/pemilik platform, tersedia dashboard khusus untuk menambah resep kreasi baru, mengunggah foto, mengatur kategori, meninjau log perubahan, serta mengunduh cadangan data.
+
+---
+
+## 🛠️ Teknologi yang Digunakan (*Tech Stack*)
+
+Resepify dibangun di atas fondasi teknologi web modern yang cepat, andal, dan aman:
+
+* **Frontend:** [Next.js](https://nextjs.org/) (App Router), [React](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
+* **Gaya & Desain:** [Tailwind CSS](https://tailwindcss.com/) dengan palet hangat *Terracotta & Cream*, tipografi *Playfair Display* & *Plus Jakarta Sans*, serta ikon vektor dari [Lucide React](https://lucide.dev/)
+* **Database & Autentikasi:** [Supabase](https://supabase.com/) (PostgreSQL dengan perlindungan *Row Level Security* & autentikasi Google/Email)
+* **Ketersediaan Offline:** Dilengkapi sistem penyimpanan lokal persisten (*Local Storage Fallback*) sehingga aplikasi tetap dapat diuji tanpa konfigurasi database eksternal
+
+---
+
+## 💻 Panduan Menjalankan Proyek (Bagi Pengembang)
+
+Jika Anda ingin menjalankan atau mengembangkan proyek ini di komputer lokal:
+
+### 1. Prasyarat
+* [Node.js](https://nodejs.org/) versi 18 atau lebih baru
+* npm (bawaan dari Node.js)
+
+### 2. Instalasi Dependensi
 ```bash
+git clone https://github.com/FriesX/Resepify.git
+cd Resepify
 npm install
 ```
 
-### 2. Menjalankan Server Pengembangan
+### 3. Konfigurasi Lingkungan (*Environment Variables*)
+Salin berkas `.env.example` menjadi `.env.local`:
+```bash
+cp .env.example .env.local
+```
+Sesuaikan nilai URL dan Kunci Supabase Anda:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+NEXT_PUBLIC_ADMIN_EMAILS=your-email@example.com
+```
+*(Catatan: Jika Supabase belum diisi, aplikasi akan berjalan menggunakan data bawaan/mock secara lokal).*
+
+### 4. Menjalankan Server Pengembangan
 ```bash
 npm run dev
 ```
-Buka browser pada [http://localhost:3000](http://localhost:3000).
+Buka peramban Anda di [http://localhost:3000](http://localhost:3000).
 
-### 3. Menjalankan Uji Logika Bisnis (Unit Test)
-```bash
-npm run test:logic
-```
-
-### 4. Melakukan Build Produksi
-```bash
-npm run build
-```
-
----
-
-## 🔐 Autentikasi & Manajemen Peran (Supabase Auth)
-
-Resepify menggunakan sistem autentikasi modern berbasis Supabase dengan kontrol akses berbasis peran (RBAC):
-1. **Google OAuth & Email/Password:** Pengguna dapat masuk menggunakan akun Google atau mendaftar menggunakan email dengan verifikasi.
-2. **Peran Viewer (Tamu Terdaftar):** Otomatis diberikan kepada seluruh pengguna yang mendaftar, memberikan akses penuh ke seluruh resep terbitan (*Published*).
-3. **Peran Admin (Pemilik Website):** Dikelola secara aman melalui trigger database PostgreSQL atau konfigurasi variabel `NEXT_PUBLIC_ADMIN_EMAILS`, memberikan akses eksklusif ke Dashboard Admin (`/admin`).
+### 5. Pengujian & Build Produksi
+* Menjalankan uji logika bisnis (validasi slug, scaler porsi, dan aturan otorisasi):
+  ```bash
+  npm run test:logic
+  ```
+* Membangun aplikasi untuk produksi:
+  ```bash
+  npm run build
+  ```
 
 ---
 
-## 🗄️ Skema Database Supabase (PostgreSQL)
-
-Berkas skema lengkap dengan RLS dan indeks performa tersedia di:
-```
-supabase/schema.sql
-```
-
-Untuk menghubungkan ke project Supabase Anda:
-1. Buat proyek baru di [Supabase Dashboard](https://supabase.com).
-2. Jalankan skrip `supabase/schema.sql` pada menu **SQL Editor**.
-3. Buat file `.env.local` dari `.env.example`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://<project-id>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
-```
-
----
-
-## 📁 Struktur Direktori Proyek
+## 📂 Struktur Direktori Proyek
 
 ```
-Recipes Stack/
-├── .github/workflows/ci.yml       # Pipeline CI/CD GitHub Actions
-├── design-system/resepify/        # Master token & aturan UI/UX Pro Max
-├── scripts/
-│   ├── seed-supabase.mjs          # Script penanaman data awal ke Supabase
-│   ├── test-recipe-logic.mjs      # Test suite verifikasi kriteria PRD
-│   └── test-supabase-connection.mjs # Uji konektivitas database Supabase
+Resepify/
+├── scripts/                       # Skrip uji logika resep & koneksi database
 ├── src/
-│   ├── app/
-│   │   ├── admin/page.tsx         # Dashboard Admin & manajemen resep
-│   │   ├── api/                   # API routes (health, recipes, me)
-│   │   ├── login/page.tsx         # Autentikasi Google & Email
-│   │   ├── recipes/
-│   │   │   ├── page.tsx           # Katalog resep terfilter
-│   │   │   └── [slug]/page.tsx    # Halaman detail & panduan memasak
-│   │   ├── globals.css            # Token warna & styling Tailwind
-│   │   ├── layout.tsx             # Root Layout & Google Fonts
-│   │   └── page.tsx               # Gerbang beranda publik / pengalihan
-│   ├── components/
-│   │   ├── admin/                 # Modal CRUD, kategori, audit, backup
-│   │   ├── common/                # Navbar, Footer, ComingSoonModal
-│   │   ├── home/                  # GuestLanding (Hero-centric pattern)
-│   │   └── recipes/               # RecipeCard, RecipeFilters, DetailView
-│   ├── context/                   # AuthContext & state manajemen sesi
-│   ├── data/                      # Data seed resep otentik & kategori
-│   ├── lib/                       # Storage service, slug generator, Supabase client
-│   └── types/                     # Antarmuka TypeScript (Recipe, Category, Auth, Audit)
-├── supabase/
-│   ├── admin_trigger.sql          # Trigger otomatisasi role admin
-│   ├── schema.sql                 # DDL PostgreSQL, RLS policies, indexes
-│   └── seed.sql                   # SQL seed resep & kategori nusantara
-└── package.json
+│   ├── app/                       # Rute halaman Next.js App Router (katalog, detail, admin, auth)
+│   ├── components/                # Komponen antarmuka pengguna (Navbar, Footer, Resep, Modal)
+│   ├── context/                   # State autentikasi & manajemen sesi pengguna
+│   ├── data/                      # Data awal (seed) resep & kategori nusantara
+│   ├── lib/                       # Layanan penyimpanan, slug generator, dan client Supabase
+│   └── types/                     # Definisi tipe data TypeScript (Resep, Bahan, Kategori, dsb.)
+├── supabase/                      # Skrip SQL database (skema tabel, trigger role admin, seed data)
+├── .github/workflows/             # Pipeline otomatisasi CI/CD GitHub Actions
+└── package.json                   # Konfigurasi dependensi dan skrip proyek
 ```
+
+---
+
+## 📄 Lisensi & Kontribusi
+
+Proyek ini dikembangkan secara terbuka untuk tujuan edukasi dan portofolio kuliner modern. Saran, masukan, dan kontribusi pengembangan selalu disambut baik melalui *Pull Request* atau *Issue* di GitHub.
